@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Estoque – GLP</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Lato:wght@400;700&display=swap');
+
+:root {
+  --bg:        #f4f6fb;
+  --surface:   #ffffff;
+  --surface2:  #f0f3fa;
+  --border:    #dce2ef;
+  --border2:   #c8d0e7;
+  --accent:    #2563eb;
+  --accent-lt: #eff4ff;
+  --accent2:   #059669;
+  --accent2-lt:#ecfdf5;
+  --danger:    #dc2626;
+  --danger-lt: #fef2f2;
+  --warn:      #d97706;
+  --warn-lt:   #fffbeb;
+  --text:      #1e293b;
+  --text2:     #64748b;
+  --text3:     #94a3b8;
+  --shadow:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.10);
+  --radius:    10px;
+  --radius-lg: 14px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body { font-family: 'Lato', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* LOADING */
+#loading-screen {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; flex-direction: column; gap: 16px;
+  background: linear-gradient(135deg, #e8eef8 0%, #f4f6fb 60%, #e0eaff 100%);
+}
+.spinner {
+  width: 40px; height: 40px; border: 4px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* LOGIN */
+#login-screen {
+  display: none; align-items: center; justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #e8eef8 0%, #f4f6fb 60%, #e0eaff 100%);
+}
+.login-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 44px 40px; width: 380px;
+  box-shadow: var(--shadow-md); text-align: center;
+}
+.login-logo {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; border-radius: 14px;
+  background: var(--accent); color: #fff; font-size: 24px;
+  margin-bottom: 16px; box-shadow: 0 4px 14px rgba(37,99,235,.35);
+}
+.login-brand { font-family: 'Nunito Sans', sans-serif; font-weight: 800; font-size: 22px; color: var(--text); margin-bottom: 4px; }
+.login-brand span { color: var(--accent); }
+.login-sub { color: var(--text2); font-size: 13px; margin-bottom: 32px; }
+.login-box label { display: block; text-align: left; font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
+.login-box input {
+  width: 100%; padding: 11px 14px;
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  font-family: 'Lato', sans-serif; font-size: 14px;
+  margin-bottom: 16px; outline: none; transition: border-color .2s, background .2s;
+}
+.login-box input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+.btn-login {
+  width: 100%; padding: 12px; background: var(--accent); border: none;
+  border-radius: var(--radius); color: #fff;
+  font-family: 'Nunito Sans', sans-serif; font-weight: 800; font-size: 15px;
+  cursor: pointer; transition: background .2s, transform .1s;
+  box-shadow: 0 2px 8px rgba(37,99,235,.3);
+}
+.btn-login:hover { background: #1d4ed8; }
+.btn-login:active { transform: scale(.98); }
+#login-error { color: var(--danger); font-size: 12px; font-weight: 700; margin-top: 10px; min-height: 18px; }
+
+/* APP */
+#app { display: none; flex-direction: column; min-height: 100vh; }
+
+/* HEADER */
+header {
+  display: flex; align-items: center; gap: 14px; padding: 0 24px; height: 58px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow); position: sticky; top: 0; z-index: 200;
+}
+.h-logo {
+  width: 34px; height: 34px; border-radius: 9px; background: var(--accent);
+  color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center;
+}
+.h-brand { font-family: 'Nunito Sans', sans-serif; font-weight: 800; font-size: 17px; }
+.h-brand span { color: var(--accent); }
+.h-spacer { flex: 1; }
+.h-user {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 14px 5px 8px;
+  font-size: 13px; font-weight: 700; color: var(--text2);
+}
+.h-avatar {
+  width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;
+}
+#sync-indicator {
+  font-size: 11px; font-weight: 700; padding: 4px 10px;
+  border-radius: 20px; background: var(--accent2-lt); color: var(--accent2);
+  border: 1px solid #a7f3d0; transition: all .3s;
+}
+#sync-indicator.saving { background: var(--warn-lt); color: var(--warn); border-color: #fcd34d; }
+#sync-indicator.error { background: var(--danger-lt); color: var(--danger); border-color: #fca5a5; }
+#btn-logout {
+  background: none; border: 1.5px solid var(--border); border-radius: 8px;
+  color: var(--text2); font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700;
+  padding: 6px 14px; cursor: pointer; transition: all .2s;
+}
+#btn-logout:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-lt); }
+
+/* NAV */
+nav {
+  display: flex; gap: 2px; padding: 0 20px;
+  background: var(--surface); border-bottom: 2px solid var(--border); overflow-x: auto;
+}
+nav button {
+  background: none; border: none; border-bottom: 3px solid transparent;
+  font-family: 'Nunito Sans', sans-serif; font-size: 13px; font-weight: 700;
+  color: var(--text2); padding: 13px 20px; cursor: pointer; white-space: nowrap;
+  transition: all .18s; margin-bottom: -2px;
+}
+nav button.active { color: var(--accent); border-bottom-color: var(--accent); }
+nav button:hover:not(.active) { color: var(--text); background: var(--surface2); }
+
+/* CONTENT */
+#content { flex: 1; padding: 24px; max-width: 1400px; width: 100%; margin: 0 auto; }
+
+/* SECTION HEADER */
+.section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+.section-title { font-family: 'Nunito Sans', sans-serif; font-weight: 800; font-size: 20px; color: var(--text); }
+.section-title span { color: var(--accent); }
+.badge {
+  padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+  background: var(--accent-lt); color: var(--accent);
+}
+.badge.green { background: var(--accent2-lt); color: var(--accent2); }
+
+/* SUMMARY CARDS */
+.summary-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
+.summary-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 14px 18px; flex: 1; min-width: 130px;
+  box-shadow: var(--shadow); position: relative; overflow: hidden;
+}
+.summary-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px; background: var(--accent);
+}
+.summary-card.green::before { background: var(--accent2); }
+.summary-card.red::before   { background: var(--danger); }
+.s-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text2); margin-bottom: 5px; }
+.s-value { font-family: 'Nunito Sans', sans-serif; font-size: 26px; font-weight: 800; color: var(--text); }
+.summary-card.blue .s-value { color: var(--accent); }
+.summary-card.green .s-value { color: var(--accent2); }
+.summary-card.red .s-value   { color: var(--danger); }
+
+/* PRODUCT SECTION */
+.product-section { margin-bottom: 28px; }
+.product-label {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Nunito Sans', sans-serif; font-weight: 800; font-size: 14px;
+  padding: 10px 14px; background: var(--surface);
+  border: 1px solid var(--border); border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.product-label .tag {
+  background: var(--accent-lt); color: var(--accent);
+  border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700;
+}
+
+/* TABLE */
+.table-wrap { overflow-x: auto; border-radius: 0 0 var(--radius) var(--radius); box-shadow: var(--shadow); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--surface); }
+thead th {
+  background: var(--surface2); color: var(--text2);
+  padding: 9px 10px; text-align: center; border: 1px solid var(--border);
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+  white-space: nowrap;
+}
+thead th.col-input { background: #eff6ff; color: var(--accent); border-top: 2px solid var(--accent); }
+thead th.col-calc  { background: #f8fafc; color: var(--text3); }
+thead th.col-master { background: #fffbeb; color: var(--warn); border-top: 2px solid var(--warn); }
+tbody tr { transition: background .12s; }
+tbody tr:hover { background: #f5f8ff; }
+tbody tr.today-row { background: #eff6ff; }
+tbody td { padding: 7px 10px; border: 1px solid var(--border); text-align: center; vertical-align: middle; }
+td.date-col {
+  color: var(--text2); font-size: 12px; white-space: nowrap; font-weight: 700;
+  background: var(--surface2); padding-left: 12px; padding-right: 12px;
+}
+tbody tr.today-row td.date-col { background: #dbeafe; color: var(--accent); }
+td.readonly { font-weight: 600; color: var(--text); }
+td input[type=number] {
+  background: transparent; border: 1.5px solid transparent; outline: none;
+  color: var(--text); font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700;
+  width: 68px; text-align: center; padding: 4px 6px;
+  border-radius: 6px; transition: all .15s;
+}
+td input[type=number]:focus { background: #fff; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+td input[type=number]:hover:not(:focus):not(:disabled) { background: var(--surface2); border-color: var(--border); }
+td input[type=number]:disabled { color: var(--text3); cursor: not-allowed; }
+td input[type=text] {
+  background: transparent; border: 1.5px solid transparent; outline: none;
+  color: var(--text); font-family: 'Lato', sans-serif; font-size: 12px;
+  width: 130px; text-align: left; padding: 4px 6px;
+  border-radius: 6px; transition: all .15s;
+}
+td input[type=text]:focus { background: #fff; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+td input[type=text]:hover:not(:focus):not(:disabled) { background: var(--surface2); border-color: var(--border); }
+td input[type=text]:disabled { color: var(--text3); }
+td.val-pos { color: var(--accent2); font-weight: 700; }
+td.val-neg { color: var(--danger); font-weight: 700; }
+tfoot td { background: #f1f5f9; font-weight: 700; border: 1px solid var(--border); padding: 8px 10px; font-size: 12px; color: var(--text2); }
+tfoot td.tot-e { color: var(--accent); font-weight: 800; font-size: 13px; }
+tfoot td.tot-v { color: var(--danger); font-weight: 800; font-size: 13px; }
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: none; cursor: pointer; border-radius: var(--radius);
+  padding: 9px 16px; font-family: 'Nunito Sans', sans-serif;
+  font-weight: 700; font-size: 13px; transition: all .18s; text-decoration: none;
+}
+.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 6px rgba(37,99,235,.25); }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-secondary { background: var(--surface); color: var(--text2); border: 1.5px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-lt); }
+.btn-success { background: var(--accent2); color: #fff; box-shadow: 0 2px 6px rgba(5,150,105,.25); }
+.btn-success:hover { background: #047857; }
+.btn-danger-outline { background: none; color: var(--danger); border: 1.5px solid var(--border); }
+.btn-danger-outline:hover { background: var(--danger-lt); border-color: var(--danger); }
+.btn-modal { background: var(--accent2); color: #fff; box-shadow: 0 2px 6px rgba(5,150,105,.25); }
+.btn-modal:hover { background: #047857; }
+.btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 7px; }
+.btn-full { width: 100%; justify-content: center; margin-top: 10px; }
+
+/* CONFIG */
+.config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media(max-width:720px) { .config-grid { grid-template-columns: 1fr; } }
+.config-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow);
+}
+.config-card h3 {
+  font-family: 'Nunito Sans', sans-serif; font-weight: 800; font-size: 16px;
+  margin-bottom: 18px; color: var(--text);
+  border-bottom: 1px solid var(--border); padding-bottom: 12px;
+}
+.form-group { margin-bottom: 14px; }
+.form-group label {
+  display: block; font-size: 11px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: .4px; margin-bottom: 5px;
+}
+.form-group input, .form-group select {
+  width: 100%; padding: 10px 13px;
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  font-family: 'Lato', sans-serif; font-size: 13px; outline: none; transition: all .2s;
+}
+.form-group input:focus, .form-group select:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,.08); }
+
+/* USERS LIST */
+.users-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; padding-right: 2px; }
+.user-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px; transition: all .18s;
+}
+.user-row:hover { border-color: var(--border2); background: #f8faff; }
+.u-avatar {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--accent);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800; flex-shrink: 0;
+}
+.u-avatar.master { background: var(--warn); }
+.u-info { flex: 1; min-width: 0; }
+.u-name { font-weight: 700; color: var(--text); font-size: 14px; }
+.u-dep  { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.u-actions { display: flex; gap: 6px; }
+
+/* INITIAL STOCK */
+.ini-section-title {
+  font-family: 'Nunito Sans', sans-serif; font-weight: 800; font-size: 12px;
+  color: var(--accent); text-transform: uppercase; letter-spacing: 1px;
+  margin: 14px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border);
+}
+.ini-row {
+  display: grid; grid-template-columns: 80px 1fr 1fr; gap: 8px;
+  align-items: center; padding: 7px 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; margin-bottom: 5px;
+}
+.ini-row .pname { font-weight: 700; font-size: 13px; color: var(--text); }
+.ini-row input {
+  padding: 6px 8px; border-radius: 6px; background: #fff;
+  border: 1.5px solid var(--border); color: var(--text);
+  font-family: 'Lato',sans-serif; font-size: 13px; font-weight: 700;
+  text-align: center; outline: none; transition: border-color .2s;
+}
+.ini-row input:focus { border-color: var(--accent); }
+.ini-header {
+  display: grid; grid-template-columns: 80px 1fr 1fr; gap: 8px;
+  padding: 0 10px 4px; margin-top: 4px;
+}
+.ini-header span { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; text-align: center; }
+
+/* ALERT */
+.alert {
+  padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 700;
+  margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+}
+.alert.success { background: var(--accent2-lt); border: 1.5px solid #a7f3d0; color: var(--accent2); }
+.alert.error   { background: var(--danger-lt); border: 1.5px solid #fca5a5; color: var(--danger); }
+
+/* DIVIDER */
+hr { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+/* MODAL - CONFERÊNCIA */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(15,23,42,.45); backdrop-filter: blur(3px);
+  z-index: 1000; align-items: center; justify-content: center; padding: 16px;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 28px;
+  width: 100%; max-width: 1040px; max-height: 88vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.18);
+}
+.modal-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+  border-bottom: 1px solid var(--border); padding-bottom: 14px;
+}
+.modal-header h2 { font-family: 'Nunito Sans', sans-serif; font-size: 18px; font-weight: 800; }
+.modal-close {
+  margin-left: auto; background: none; border: 1.5px solid var(--border);
+  color: var(--text2); font-size: 14px; border-radius: 8px;
+  padding: 6px 14px; cursor: pointer; font-family: 'Lato',sans-serif; font-weight: 700;
+  transition: all .2s;
+}
+.modal-close:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-lt); }
+.month-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+.month-row label { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; }
+.month-row select {
+  padding: 7px 12px; border-radius: 8px; border: 1.5px solid var(--border);
+  font-family: 'Lato',sans-serif; font-size: 13px;
+  background: var(--surface2); color: var(--text); outline: none;
+  transition: border-color .2s;
+}
+.month-row select:focus { border-color: var(--accent); }
+
+/* EDIT USER MODAL */
+.edit-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(15,23,42,.5); backdrop-filter: blur(4px);
+  z-index: 1100; align-items: center; justify-content: center; padding: 16px;
+}
+.edit-overlay.open { display: flex; }
+.edit-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 30px;
+  width: 100%; max-width: 440px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  animation: slideUp .2s ease;
+}
+@keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.edit-box h3 {
+  font-family: 'Nunito Sans', sans-serif; font-weight: 800; font-size: 17px;
+  margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.pass-wrap { position: relative; }
+.pass-wrap input { width: 100%; padding-right: 40px; }
+.pass-toggle-btn {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: var(--text2);
+  font-size: 16px; line-height: 1; padding: 4px;
+  transition: color .2s;
+}
+.pass-toggle-btn:hover { color: var(--accent); }
+.edit-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+/* PRODUCT TABS */
+.prod-tabs-wrap {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 20px;
+}
+.prod-tab {
+  background: var(--surface); border: 1.5px solid var(--border2);
+  border-bottom: none; padding: 9px 22px; margin-bottom: -2px;
+  font-family: 'Nunito Sans', sans-serif; font-size: 13px; font-weight: 800;
+  color: var(--text2); cursor: pointer; transition: all .15s;
+  border-radius: 8px 8px 0 0; display: inline-flex; align-items: center; gap: 7px;
+}
+.prod-tab.active {
+  background: var(--accent-lt); color: var(--accent);
+  border-color: var(--accent); border-bottom-color: var(--accent-lt);
+}
+.prod-tab:hover:not(.active) { background: var(--surface2); color: var(--text); }
+
+/* ENTRY PANEL */
+.entry-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 28px 30px;
+  box-shadow: var(--shadow-md); max-width: 680px;
+}
+.entry-date-badge {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--accent-lt); border: 1.5px solid var(--accent);
+  border-radius: 10px; padding: 9px 20px; margin-bottom: 24px;
+  font-family: 'Nunito Sans', sans-serif; font-weight: 800; font-size: 16px;
+  color: var(--accent); text-transform: capitalize;
+}
+.entry-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px;
+  color: var(--text3); margin-bottom: 10px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.entry-stats-row { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
+.entry-stat {
+  flex: 1; min-width: 120px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px; text-align: center;
+}
+.entry-stat .es-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  color: var(--text3); margin-bottom: 5px;
+}
+.entry-stat .es-val {
+  font-family: 'Nunito Sans', sans-serif; font-size: 26px; font-weight: 800; color: var(--text);
+}
+.entry-stat.blue  .es-val { color: var(--accent); }
+.entry-stat.green .es-val { color: var(--accent2); }
+.entry-stat.red   .es-val { color: var(--danger); }
+.entry-stat.orange .es-val { color: var(--warn); }
+
+.entry-inputs-row { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+.entry-field { flex: 1; min-width: 160px; }
+.entry-field > label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; color: var(--text2); margin-bottom: 8px;
+}
+.entry-field input[type=number] {
+  width: 100%; padding: 16px;
+  background: var(--surface2); border: 2px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  font-family: 'Nunito Sans', sans-serif; font-size: 32px; font-weight: 800;
+  text-align: center; outline: none; transition: all .18s;
+}
+.entry-field input[type=number]:focus {
+  background: #fff; box-shadow: 0 0 0 4px rgba(37,99,235,.12);
+}
+.entry-field.entrada > label { color: var(--accent); }
+.entry-field.entrada input { border-color: #93c5fd; }
+.entry-field.entrada input:focus { border-color: var(--accent); }
+.entry-field.venda > label   { color: var(--danger); }
+.entry-field.venda input   { border-color: #fca5a5; }
+.entry-field.venda input:focus { border-color: var(--danger); }
+.entry-field.cota-entrada > label { color: #0891b2; }
+.entry-field.cota-entrada input { border-color: #a5f3fc; font-size: 22px; }
+.entry-field.cota-entrada input:focus { border-color: #0891b2; }
+.entry-field.cota-saida > label { color: #be185d; }
+.entry-field.cota-saida input { border-color: #fbcfe8; font-size: 22px; }
+.entry-field.cota-saida input:focus { border-color: #be185d; }
+.entry-field.troca-entrada > label { color: var(--accent2); }
+.entry-field.troca-entrada input { border-color: #6ee7b7; font-size: 22px; }
+.entry-field.troca-entrada input:focus { border-color: var(--accent2); }
+.entry-field.troca-saida > label { color: var(--warn); }
+.entry-field.troca-saida input { border-color: #fcd34d; font-size: 22px; }
+.entry-field.troca-saida input:focus { border-color: var(--warn); }
+
+.entry-obs-wrap { margin-bottom: 0; }
+.entry-obs-wrap > label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; color: var(--text2); margin-bottom: 8px;
+}
+.entry-obs-wrap input[type=text] {
+  width: 100%; padding: 12px 14px;
+  background: var(--surface2); border: 2px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  font-family: 'Lato', sans-serif; font-size: 14px;
+  outline: none; transition: all .18s;
+}
+.entry-obs-wrap input[type=text]:focus {
+  background: #fff; border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(37,99,235,.12);
+}
+.entry-noite-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+
+/* Master editable initial cells */
+td input[type=number].master-edit {
+  border-color: rgba(217,119,6,.3);
+  background: #fffbeb;
+}
+td input[type=number].master-edit:focus {
+  background: #fff; border-color: var(--warn);
+  box-shadow: 0 0 0 3px rgba(217,119,6,.15);
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <div style="font-family:'Nunito Sans',sans-serif;font-weight:700;color:var(--text2);font-size:14px">Conectando ao Firebase…</div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🔥</div>
+    <div class="login-brand">GLP <span>Stock</span></div>
+    <div class="login-sub">Sistema de Controle de Estoque</div>
+    <div class="form-group" style="text-align:left">
+      <label>Usuário</label>
+      <input type="text" id="login-user" autocomplete="off" placeholder="Digite seu usuário">
+    </div>
+    <div class="form-group" style="text-align:left">
+      <label>Senha</label>
+      <input type="password" id="login-pass" placeholder="••••••••">
+    </div>
+    <button class="btn-login" onclick="doLogin()">Entrar</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="h-logo">🔥</div>
+    <div class="h-brand">GLP <span>Stock</span></div>
+    <div class="h-spacer"></div>
+    <div id="sync-indicator">☁ Sincronizado</div>
+    <div class="h-user">
+      <div class="h-avatar" id="h-avatar">–</div>
+      <span id="user-badge">–</span>
+    </div>
+    <button id="btn-logout" onclick="doLogout()">Sair</button>
+  </header>
+  <nav id="main-nav"></nav>
+  <div id="content"></div>
+</div>
+
+<!-- CONFERÊNCIA MODAL -->
+<div class="modal-overlay" id="modal-conf">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modal-title">📊 Conferência de Estoque</h2>
+      <button class="modal-close" onclick="closeModal()">✕ Fechar</button>
+    </div>
+    <div class="month-row">
+      <label>Mês:</label>
+      <select id="modal-month" onchange="renderModal()">
+        <option value="0">Janeiro</option><option value="1">Fevereiro</option>
+        <option value="2">Março</option><option value="3">Abril</option>
+        <option value="4">Maio</option><option value="5">Junho</option>
+        <option value="6">Julho</option><option value="7">Agosto</option>
+        <option value="8">Setembro</option><option value="9">Outubro</option>
+        <option value="10">Novembro</option><option value="11">Dezembro</option>
+      </select>
+      <label>Ano:</label>
+      <select id="modal-year" onchange="renderModal()">
+        <option value="2026">2026</option><option value="2027">2027</option>
+      </select>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- EDIT USER MODAL -->
+<div class="edit-overlay" id="modal-edit">
+  <div class="edit-box">
+    <h3>✏️ Editar Usuário</h3>
+    <div id="edit-alert"></div>
+    <div class="form-group">
+      <label>Nome de Usuário <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(pode alterar)</span></label>
+      <input type="text" id="edit-uname" placeholder="Nome de usuário" style="width:100%;padding:10px 13px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Lato',sans-serif;font-size:13px;outline:none;">
+    </div>
+    <div class="form-group">
+      <label>Senha Atual <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(clique no olho para visualizar)</span></label>
+      <div class="pass-wrap">
+        <input type="password" id="edit-pass-current" style="width:100%;padding:10px 40px 10px 13px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Lato',sans-serif;font-size:13px;outline:none;" readonly>
+        <button class="pass-toggle-btn" type="button" onclick="toggleVis('edit-pass-current')" title="Mostrar/ocultar">👁</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Nova Senha <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(deixe em branco para manter)</span></label>
+      <div class="pass-wrap">
+        <input type="password" id="edit-new-pass" placeholder="Nova senha..." style="width:100%;padding:10px 40px 10px 13px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Lato',sans-serif;font-size:13px;outline:none;transition:all .2s;">
+        <button class="pass-toggle-btn" type="button" onclick="toggleVis('edit-new-pass')" title="Mostrar/ocultar">👁</button>
+      </div>
+    </div>
+    <div id="edit-dep-group" class="form-group">
+      <label>Depósito Permitido</label>
+      <select id="edit-dep" style="width:100%;padding:10px 13px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Lato',sans-serif;font-size:13px;outline:none;">
+        <option value="TR GEL">TR GEL</option>
+        <option value="DONISIL">DONISIL</option>
+        <option value="BERTONI">BERTONI</option>
+      </select>
+    </div>
+    <div class="edit-actions">
+      <button class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditUser()">💾 Salvar Alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBUNAiODlVTn1C_VQ1bgpurDNBQvRmmwKs",
+  authDomain: "gas-do-povo-3ce65.firebaseapp.com",
+  projectId: "gas-do-povo-3ce65",
+  storageBucket: "gas-do-povo-3ce65.firebasestorage.app",
+  messagingSenderId: "536610509441",
+  appId: "1:536610509441:web:f4e71f8f574fa4757ef380"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const DOC_REF = doc(db, 'controle_estoque', 'glp_data');
+
+// ── Expose Firebase ops to global scope ──
+window._fbLoad = async function() {
+  try {
+    const snap = await getDoc(DOC_REF);
+    return snap.exists() ? snap.data() : null;
+  } catch(e) {
+    console.error('Firebase load error:', e);
+    return null;
+  }
+};
+
+window._fbSave = async function(data) {
+  try {
+    await setDoc(DOC_REF, data);
+    return true;
+  } catch(e) {
+    console.error('Firebase save error:', e);
+    return false;
+  }
+};
+
+window._fbListen = function(callback) {
+  return onSnapshot(DOC_REF, (snap) => {
+    if (snap.exists()) callback(snap.data());
+  });
+};
+
+// ── Boot app after Firebase ready ──
+window._firebaseReady = true;
+window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════
+const PRODUCTS = {
+  'TR GEL':  ['P13','20L','P5','GALÃO 20L'],
+  'DONISIL': ['P13','20L','10L'],
+  'BERTONI': ['P13','20L','P45','P20','P5','10L']
+};
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+let DATA = null;
+let currentUser = null;
+let currentDeposit = null;
+let currentProduct = null;
+let editingIdx = -1;
+let _unsubscribe = null;
+let _saveTimeout = null;
+
+// ═══════════════════════════════════════════════════════
+// FIREBASE DATA LAYER
+// ═══════════════════════════════════════════════════════
+function initData() {
+  return {
+    users: [
+      { name:'master',  pass:'master123', role:'master', deposits:[] },
+      { name:'marcos',  pass:'1234', role:'user', deposits:['BERTONI'] },
+      { name:'donisil', pass:'1234', role:'user', deposits:['DONISIL'] },
+      { name:'trgel',   pass:'1234', role:'user', deposits:['TR GEL'] }
+    ],
+    records: {},
+    initial: {}
+  };
+}
+
+async function loadData() {
+  const remote = await window._fbLoad();
+  if (remote) return remote;
+  const fresh = initData();
+  await window._fbSave(fresh);
+  return fresh;
+}
+
+function setSyncStatus(status) {
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+  el.className = status;
+  if (status === 'saving') { el.textContent = '⏳ Salvando…'; }
+  else if (status === 'error') { el.textContent = '⚠ Erro ao salvar'; }
+  else { el.textContent = '☁ Sincronizado'; }
+}
+
+function saveData(d) {
+  DATA = d;
+  setSyncStatus('saving');
+  clearTimeout(_saveTimeout);
+  _saveTimeout = setTimeout(async () => {
+    const ok = await window._fbSave(d);
+    setSyncStatus(ok ? '' : 'error');
+  }, 600);
+}
+
+// ═══════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════
+async function boot() {
+  DATA = await loadData();
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+
+  // Live sync from Firestore (other users' changes appear in real-time)
+  _unsubscribe = window._fbListen((remoteData) => {
+    if (!currentUser) return; // not logged in yet
+    DATA = remoteData;
+    // Refresh current view silently
+    if (currentDeposit) {
+      if (isMaster()) showDeposit(currentDeposit, currentProduct);
+      else showDeposit(currentDeposit, currentProduct);
+    }
+  });
+}
+
+if (window._firebaseReady) {
+  boot();
+} else {
+  window.addEventListener('firebase-ready', boot);
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim().toLowerCase();
+  const p = document.getElementById('login-pass').value;
+  const user = DATA.users.find(x => x.name.toLowerCase() === u && x.pass === p);
+  if (!user) { document.getElementById('login-error').textContent = '⚠ Usuário ou senha incorretos.'; return; }
+  currentUser = user;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('user-badge').textContent = user.name.toUpperCase();
+  document.getElementById('h-avatar').textContent = user.name[0].toUpperCase();
+  buildNav();
+  const deps = accessibleDeposits();
+  if (deps.length) showDeposit(deps[0]);
+  else showConfig();
+}
+function doLogout() {
+  currentUser = null;
+  currentDeposit = null;
+  currentProduct = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  ['login-user','login-pass'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('login-error').textContent = '';
+}
+function isMaster() { return currentUser?.role === 'master'; }
+function accessibleDeposits() {
+  if (isMaster()) return Object.keys(PRODUCTS);
+  return (currentUser.deposits || []).filter(d => PRODUCTS[d]);
+}
+
+// ═══════════════════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════════════════
+function buildNav() {
+  const nav = document.getElementById('main-nav');
+  nav.innerHTML = '';
+  accessibleDeposits().forEach(dep => {
+    const btn = document.createElement('button');
+    btn.textContent = dep;
+    btn.onclick = () => { setActive(btn); showDeposit(dep); };
+    nav.appendChild(btn);
+  });
+  if (isMaster()) {
+    const btn = document.createElement('button');
+    btn.textContent = '⚙ Configurações';
+    btn.onclick = () => { setActive(btn); showConfig(); };
+    nav.appendChild(btn);
+  }
+  if (nav.firstChild) nav.firstChild.classList.add('active');
+}
+function setActive(btn) {
+  document.querySelectorAll('#main-nav button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════
+// DEPOSIT VIEW
+// ═══════════════════════════════════════════════════════
+function showDeposit(dep, prod) {
+  currentDeposit = dep;
+  const year = 2026;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const month = today.getMonth();
+  const monthDates = getDatesForYear(year).filter(d => d.getMonth() === month);
+
+  const prods = PRODUCTS[dep];
+  if (!prod || !prods.includes(prod)) prod = prods[0];
+  currentProduct = prod;
+
+  const tabsHtml = `<div class="prod-tabs-wrap">
+    ${prods.map(p => `<button class="prod-tab ${p===prod?'active':''}" onclick="showDeposit('${dep}','${p}')">📦 ${p}</button>`).join('')}
+  </div>`;
+
+  if (isMaster()) {
+    let html = `
+    <div class="section-header">
+      <div class="section-title">Depósito <span>${dep}</span></div>
+      <div class="badge">${MONTHS[month]} ${year}</div>
+      <div style="margin-left:auto">
+        <button class="btn btn-modal" onclick="openModal('${dep}')">📊 Conferir Estoque do Mês</button>
+      </div>
+    </div>
+    ${tabsHtml}
+    <div class="summary-bar">${buildSummaryProd(dep, prod, today, year)}</div>
+    ${buildTable(dep, prod, monthDates, today, year)}`;
+    document.getElementById('content').innerHTML = html;
+  } else {
+    let html = `
+    <div class="section-header">
+      <div class="section-title">Depósito <span>${dep}</span></div>
+      <div class="badge">${MONTHS[month]} ${year}</div>
+    </div>
+    ${tabsHtml}
+    <div class="summary-bar">${buildSummaryProd(dep, prod, today, year)}</div>
+    ${buildEntryForm(dep, prod, today, year)}`;
+    document.getElementById('content').innerHTML = html;
+  }
+}
+
+function buildSummaryProd(dep, prod, today, year) {
+  const c = calcRow(dep, prod, today, year);
+  const r = getRecord(dep, prod, today);
+  return `
+    <div class="summary-card blue"><div class="s-label">Data</div><div class="s-value">${today.toLocaleDateString('pt-BR')}</div></div>
+    <div class="summary-card green"><div class="s-label">Cheio Noite</div><div class="s-value">${c.cheio_noite||0}</div></div>
+    <div class="summary-card"><div class="s-label">Vazio Noite</div><div class="s-value">${c.vazio_noite||0}</div></div>
+    <div class="summary-card"><div class="s-label">Entradas Hoje</div><div class="s-value blue">${r.entrada||0}</div></div>
+    <div class="summary-card red"><div class="s-label">Vendas Hoje</div><div class="s-value">${r.venda||0}</div></div>`;
+}
+
+function buildEntryForm(dep, prod, today, year) {
+  const r = getRecord(dep, prod, today);
+  const c = calcRow(dep, prod, today, year);
+  const k = `${dep}|${prod}|${fmtDate(today)}`;
+  const dateStr = today.toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+  const cnClass = c.cheio_noite < 0 ? 'red' : 'green';
+
+  return `
+  <div class="entry-panel">
+    <div class="entry-date-badge">📅 ${dateStr}</div>
+
+    <div class="entry-section-title">Estoque Cedo</div>
+    <div class="entry-stats-row">
+      <div class="entry-stat blue">
+        <div class="es-label">Cheio Cedo</div>
+        <div class="es-val">${num(c.cheio_cedo)}</div>
+      </div>
+      <div class="entry-stat">
+        <div class="es-label">Vazio Cedo</div>
+        <div class="es-val">${num(c.vazio_cedo)}</div>
+      </div>
+      <div class="entry-stat">
+        <div class="es-label">Estoque Cedo</div>
+        <div class="es-val">${num(c.estoque_cedo)}</div>
+      </div>
+    </div>
+
+    <div class="entry-section-title">Lançamento do Dia</div>
+    <div class="entry-inputs-row">
+      <div class="entry-field entrada">
+        <label>📥 Entrada</label>
+        <input type="number" min="0" value="${r.entrada||0}"
+          data-key="${k}" data-field="entrada" onchange="handleInput(this)">
+      </div>
+      <div class="entry-field venda">
+        <label>📤 Venda</label>
+        <input type="number" min="0" value="${r.venda||0}"
+          data-key="${k}" data-field="venda" onchange="handleInput(this)">
+      </div>
+    </div>
+
+    <div class="entry-inputs-row">
+      <div class="entry-field cota-entrada">
+        <label>🔵 Cota Entrada</label>
+        <input type="number" min="0" value="${r.cota_entrada||0}"
+          data-key="${k}" data-field="cota_entrada" onchange="handleInput(this)">
+      </div>
+      <div class="entry-field cota-saida">
+        <label>🔴 Cota Saída</label>
+        <input type="number" min="0" value="${r.cota_saida||0}"
+          data-key="${k}" data-field="cota_saida" onchange="handleInput(this)">
+      </div>
+      <div class="entry-field troca-entrada">
+        <label>🟢 Troca Entrada</label>
+        <input type="number" min="0" value="${r.troca_entrada||0}"
+          data-key="${k}" data-field="troca_entrada" onchange="handleInput(this)">
+      </div>
+      <div class="entry-field troca-saida">
+        <label>🟠 Troca Saída</label>
+        <input type="number" min="0" value="${r.troca_saida||0}"
+          data-key="${k}" data-field="troca_saida" onchange="handleInput(this)">
+      </div>
+    </div>
+
+    <div class="entry-section-title">Resultado Noite</div>
+    <div class="entry-noite-row">
+      <div class="entry-stat ${cnClass}">
+        <div class="es-label">Cheio Noite</div>
+        <div class="es-val">${num(c.cheio_noite)}</div>
+      </div>
+      <div class="entry-stat">
+        <div class="es-label">Vazio Noite</div>
+        <div class="es-val">${num(c.vazio_noite)}</div>
+      </div>
+      <div class="entry-stat blue">
+        <div class="es-label">Estoque Noite</div>
+        <div class="es-val">${num(c.estoque_noite)}</div>
+      </div>
+    </div>
+
+    <div class="entry-obs-wrap">
+      <label>📝 Observação</label>
+      <input type="text" value="${r.obs||''}" data-key="${k}" data-field="obs"
+        onchange="handleInput(this)" placeholder="Anotação do dia...">
+    </div>
+  </div>`;
+}
+
+function buildTable(dep, prod, monthDates, today, year) {
+  let rows = '';
+  monthDates.forEach(date => {
+    const r = getRecord(dep, prod, date);
+    const c = calcRow(dep, prod, date, year);
+    const isToday = date.getTime() === today.getTime();
+    const k = `${dep}|${prod}|${fmtDate(date)}`;
+    const dateIdx = getDatesForYear(year).findIndex(d => fmtDate(d) === fmtDate(date));
+
+    // Master pode editar tudo; usuários só o dia de hoje
+    // Para o master, cheio_cedo e vazio_cedo do DIA 1 vêm do estoque inicial (editável via config),
+    // dos demais dias vêm do cálculo do dia anterior — master pode editar diretamente
+    const isFirstDay = dateIdx === 0;
+
+    // Cheio cedo / vazio cedo: master pode editar via override no registro
+    // Se for o primeiro dia, edita o estoque inicial
+    // Se não for, edita um campo override no registro do dia
+    let cheioCedoCell, vazioCedoCell;
+    if (isMaster()) {
+      if (isFirstDay) {
+        const ini = getInitial(dep, prod);
+        cheioCedoCell = `<input type="number" class="master-edit" value="${ini.cheio||0}"
+          data-dep="${dep}" data-prod="${prod}" data-field="ini_cheio"
+          onchange="handleIniInput(this)" title="Estoque inicial cheio">`;
+        vazioCedoCell = `<input type="number" class="master-edit" value="${ini.vazio||0}"
+          data-dep="${dep}" data-prod="${prod}" data-field="ini_vazio"
+          onchange="handleIniInput(this)" title="Estoque inicial vazio">`;
+      } else {
+        // Override manual do cheio cedo / vazio cedo deste dia
+        const ov = r._override || {};
+        const prevC = calcRow(dep, prod, getDatesForYear(year)[dateIdx-1], year);
+        cheioCedoCell = `<input type="number" class="master-edit" value="${ov.cheio_cedo !== undefined ? ov.cheio_cedo : c.cheio_cedo}"
+          data-key="${k}" data-field="_cheio_cedo"
+          onchange="handleOverrideInput(this)" title="Override cheio cedo (master)">`;
+        vazioCedoCell = `<input type="number" class="master-edit" value="${ov.vazio_cedo !== undefined ? ov.vazio_cedo : c.vazio_cedo}"
+          data-key="${k}" data-field="_vazio_cedo"
+          onchange="handleOverrideInput(this)" title="Override vazio cedo (master)">`;
+      }
+    } else {
+      cheioCedoCell = `<span class="readonly">${num(c.cheio_cedo)}</span>`;
+      vazioCedoCell = `<span class="readonly">${num(c.vazio_cedo)}</span>`;
+    }
+
+    rows += `<tr class="${isToday?'today-row':''}">
+      <td class="date-col">${isToday?'▶ ':''}${date.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'})}</td>
+      <td>${cheioCedoCell}</td>
+      <td>${vazioCedoCell}</td>
+      <td class="readonly"><strong>${num(c.estoque_cedo)}</strong></td>
+      <td><input type="number" min="0" value="${r.entrada||0}" data-key="${k}" data-field="entrada" onchange="handleInput(this)"></td>
+      <td><input type="number" min="0" value="${r.venda||0}" data-key="${k}" data-field="venda" onchange="handleInput(this)"></td>
+      <td><input type="number" min="0" value="${r.cota_entrada||0}" data-key="${k}" data-field="cota_entrada" onchange="handleInput(this)"></td>
+      <td><input type="number" min="0" value="${r.cota_saida||0}" data-key="${k}" data-field="cota_saida" onchange="handleInput(this)"></td>
+      <td><input type="number" min="0" value="${r.troca_entrada||0}" data-key="${k}" data-field="troca_entrada" onchange="handleInput(this)"></td>
+      <td><input type="number" min="0" value="${r.troca_saida||0}" data-key="${k}" data-field="troca_saida" onchange="handleInput(this)"></td>
+      <td class="${c.cheio_noite<0?'val-neg':'val-pos'}">${num(c.cheio_noite)}</td>
+      <td class="${c.vazio_noite<0?'val-neg':''}">${num(c.vazio_noite)}</td>
+      <td class="readonly"><strong>${num(c.estoque_noite)}</strong></td>
+      <td><input type="text" value="${r.obs||''}" data-key="${k}" data-field="obs" onchange="handleInput(this)" placeholder="–"></td>
+    </tr>`;
+  });
+
+  const t = monthTotals(dep, prod, monthDates, year);
+  const masterHint = isMaster() ? `<div style="font-size:11px;color:var(--warn);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+    <span style="background:var(--warn-lt);border:1px solid #fcd34d;border-radius:5px;padding:2px 8px">🔑 Master</span>
+    Campos amarelos são editáveis — incluindo cheio/vazio cedo de qualquer dia
+  </div>` : '';
+
+  return `
+  <div class="product-section">
+    ${masterHint}
+    <div class="product-label">📦 ${prod} <span class="tag">${dep}</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>Data</th>
+        <th class="${isMaster()?'col-master':'col-calc'}">Cheio Cedo</th>
+        <th class="${isMaster()?'col-master':'col-calc'}">Vazio Cedo</th>
+        <th class="col-calc">Est. Cedo</th>
+        <th class="col-input">Entrada</th><th class="col-input">Venda</th>
+        <th class="col-input">Cota Entr.</th><th class="col-input">Cota Saída</th>
+        <th class="col-input">Troca Entr.</th><th class="col-input">Troca Saída</th>
+        <th class="col-calc">Cheio Noite</th><th class="col-calc">Vazio Noite</th><th class="col-calc">Est. Noite</th>
+        <th class="col-input">Observação</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr>
+        <td>TOTAL MÊS</td><td>–</td><td>–</td><td>–</td>
+        <td class="tot-e">${t.entrada}</td><td class="tot-v">${t.venda}</td>
+        <td>${t.cota_entrada}</td><td>${t.cota_saida}</td>
+        <td>${t.troca_entrada}</td><td>${t.troca_saida}</td>
+        <td>–</td><td>–</td><td>–</td><td>–</td>
+      </tr></tfoot>
+    </table></div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// CALC
+// ═══════════════════════════════════════════════════════
+function fmtDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function getDatesForYear(year) {
+  const out = [];
+  for (let m=0;m<12;m++) {
+    const days = new Date(year,m+1,0).getDate();
+    for (let day=1;day<=days;day++) out.push(new Date(year,m,day));
+  }
+  return out;
+}
+function getRecord(dep, prod, date) { return DATA.records[`${dep}|${prod}|${fmtDate(date)}`] || {}; }
+function getInitial(dep, prod) { return DATA.initial[`${dep}|${prod}`] || {cheio:0,vazio:0}; }
+function num(v) { return (v===undefined||v===null||isNaN(v)) ? '–' : v; }
+
+function calcRow(dep, prod, date, year) {
+  const all = getDatesForYear(year);
+  const idx = all.findIndex(d => fmtDate(d) === fmtDate(date));
+  let cc, vc;
+  if (idx <= 0) {
+    const ini = getInitial(dep, prod);
+    cc = ini.cheio || 0;
+    vc = ini.vazio || 0;
+  } else {
+    const prevRecord = getRecord(dep, prod, all[idx-1]);
+    // Check if master set an override for this day's cedo values
+    const thisRecord = getRecord(dep, prod, date);
+    if (thisRecord._override && thisRecord._override.cheio_cedo !== undefined) {
+      cc = thisRecord._override.cheio_cedo;
+      vc = thisRecord._override.vazio_cedo !== undefined ? thisRecord._override.vazio_cedo : calcRow(dep,prod,all[idx-1],year).vazio_noite;
+    } else {
+      const p = calcRow(dep, prod, all[idx-1], year);
+      cc = p.cheio_noite;
+      vc = p.vazio_noite;
+    }
+  }
+  const r = getRecord(dep, prod, date);
+  const e=r.entrada||0, v=r.venda||0, ce=r.cota_entrada||0, cs=r.cota_saida||0, te=r.troca_entrada||0, ts=r.troca_saida||0;
+  const cn = cc+e-v-te+ts;
+  const vn = vc-e+v+ce-cs;
+  return { cheio_cedo:cc, vazio_cedo:vc, estoque_cedo:cc+vc, cheio_noite:cn, vazio_noite:vn, estoque_noite:cn+vn };
+}
+
+function monthTotals(dep, prod, dates, year) {
+  const t = {entrada:0,venda:0,cota_entrada:0,cota_saida:0,troca_entrada:0,troca_saida:0};
+  dates.forEach(d => {
+    const r = getRecord(dep,prod,d);
+    t.entrada+=r.entrada||0; t.venda+=r.venda||0;
+    t.cota_entrada+=r.cota_entrada||0; t.cota_saida+=r.cota_saida||0;
+    t.troca_entrada+=r.troca_entrada||0; t.troca_saida+=r.troca_saida||0;
+  });
+  return t;
+}
+
+// ═══════════════════════════════════════════════════════
+// INPUT HANDLERS
+// ═══════════════════════════════════════════════════════
+function handleInput(el) {
+  const key = el.dataset.key;
+  const field = el.dataset.field;
+  if (!DATA.records[key]) DATA.records[key] = {};
+  DATA.records[key][field] = field==='obs' ? el.value : (parseFloat(el.value)||0);
+  saveData(DATA);
+  if (currentDeposit) showDeposit(currentDeposit, currentProduct);
+}
+
+// Master edits initial stock inline on table
+function handleIniInput(el) {
+  const dep = el.dataset.dep;
+  const prod = el.dataset.prod;
+  const field = el.dataset.field;
+  const iniKey = `${dep}|${prod}`;
+  if (!DATA.initial[iniKey]) DATA.initial[iniKey] = {cheio:0,vazio:0};
+  if (field === 'ini_cheio') DATA.initial[iniKey].cheio = parseFloat(el.value)||0;
+  if (field === 'ini_vazio') DATA.initial[iniKey].vazio = parseFloat(el.value)||0;
+  saveData(DATA);
+  if (currentDeposit) showDeposit(currentDeposit, currentProduct);
+}
+
+// Master overrides cheio_cedo / vazio_cedo for any day
+function handleOverrideInput(el) {
+  const key = el.dataset.key;
+  const field = el.dataset.field;
+  if (!DATA.records[key]) DATA.records[key] = {};
+  if (!DATA.records[key]._override) DATA.records[key]._override = {};
+  if (field === '_cheio_cedo') DATA.records[key]._override.cheio_cedo = parseFloat(el.value)||0;
+  if (field === '_vazio_cedo') DATA.records[key]._override.vazio_cedo = parseFloat(el.value)||0;
+  saveData(DATA);
+  if (currentDeposit) showDeposit(currentDeposit, currentProduct);
+}
+
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+function showConfig() {
+  if (!isMaster()) { document.getElementById('content').innerHTML='<p>Acesso negado.</p>'; return; }
+  document.getElementById('content').innerHTML = `
+  <div class="section-header">
+    <div class="section-title">⚙ Configurações</div>
+    <div class="badge">Acesso Master</div>
+  </div>
+  <div id="cfg-alert"></div>
+  <div class="config-grid">
+    <div class="config-card">
+      <h3>👤 Usuários do Sistema</h3>
+      <div class="users-list" id="users-list">${renderUsers()}</div>
+      <hr>
+      <p style="font-family:'Nunito Sans',sans-serif;font-weight:800;font-size:14px;margin-bottom:14px">+ Adicionar Novo Usuário</p>
+      <div class="form-group"><label>Nome de Usuário</label><input type="text" id="nu-name" placeholder="ex: joao"></div>
+      <div class="form-group"><label>Senha</label><input type="password" id="nu-pass" placeholder="senha"></div>
+      <div class="form-group">
+        <label>Depósito Permitido</label>
+        <select id="nu-dep">${Object.keys(PRODUCTS).map(d=>`<option value="${d}">${d}</option>`).join('')}</select>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="addUser()">+ Adicionar Usuário</button>
+    </div>
+
+    <div class="config-card">
+      <h3>📦 Estoque Inicial (Dia 1)</h3>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+        Define o estoque de cheio/vazio no início do ano. Você também pode editar diretamente na tabela de qualquer depósito (campos amarelos).
+      </p>
+      <div id="ini-form">${renderInitForm()}</div>
+      <button class="btn btn-success btn-full" style="margin-top:14px" onclick="saveIni()">💾 Salvar Estoque Inicial</button>
+    </div>
+  </div>`;
+}
+
+function renderUsers() {
+  return DATA.users.map((u,i) => `
+    <div class="user-row">
+      <div class="u-avatar ${u.role==='master'?'master':''}">${u.name[0].toUpperCase()}</div>
+      <div class="u-info">
+        <div class="u-name">${u.name}</div>
+        <div class="u-dep">${u.role==='master' ? '🔑 Master – Acesso Total' : '📦 '+(u.deposits||[]).join(', ')}</div>
+      </div>
+      <div class="u-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openEdit(${i})">✏️ Editar</button>
+        ${u.role!=='master' ? `<button class="btn btn-danger-outline btn-sm" onclick="delUser(${i})">✕</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function renderInitForm() {
+  let html = '';
+  Object.entries(PRODUCTS).forEach(([dep, prods]) => {
+    html += `<div class="ini-section-title">🏭 ${dep}</div>`;
+    html += `<div class="ini-header"><span></span><span>Cheio</span><span>Vazio</span></div>`;
+    prods.forEach(prod => {
+      const ini = getInitial(dep,prod);
+      const di = dep.replace(/[\s|]/g,'_'), pi = prod.replace(/[\s|]/g,'_');
+      html += `<div class="ini-row">
+        <span class="pname">${prod}</span>
+        <input type="number" min="0" id="ini_${di}_${pi}_c" value="${ini.cheio||0}">
+        <input type="number" min="0" id="ini_${di}_${pi}_v" value="${ini.vazio||0}">
+      </div>`;
+    });
+  });
+  return html;
+}
+
+function addUser() {
+  const name = document.getElementById('nu-name').value.trim().toLowerCase();
+  const pass = document.getElementById('nu-pass').value;
+  const dep  = document.getElementById('nu-dep').value;
+  if (!name||!pass) { cfgAlert('Preencha nome e senha.','error'); return; }
+  if (DATA.users.find(u=>u.name===name)) { cfgAlert('Usuário já existe.','error'); return; }
+  DATA.users.push({name,pass,role:'user',deposits:[dep]});
+  saveData(DATA); cfgAlert('✅ Usuário adicionado!','success'); showConfig();
+}
+
+function delUser(idx) {
+  if (!confirm(`Remover "${DATA.users[idx].name}"?`)) return;
+  DATA.users.splice(idx,1); saveData(DATA); showConfig();
+}
+
+function saveIni() {
+  Object.entries(PRODUCTS).forEach(([dep,prods]) => {
+    prods.forEach(prod => {
+      const di=dep.replace(/[\s|]/g,'_'), pi=prod.replace(/[\s|]/g,'_');
+      const c=document.getElementById(`ini_${di}_${pi}_c`);
+      const v=document.getElementById(`ini_${di}_${pi}_v`);
+      if(c&&v) DATA.initial[`${dep}|${prod}`]={cheio:parseFloat(c.value)||0,vazio:parseFloat(v.value)||0};
+    });
+  });
+  saveData(DATA); cfgAlert('✅ Estoque inicial salvo!','success');
+}
+
+function cfgAlert(msg, type) {
+  const el = document.getElementById('cfg-alert');
+  if (!el) return;
+  el.innerHTML = `<div class="alert ${type}">${msg}</div>`;
+  setTimeout(() => { if(el) el.innerHTML=''; }, 3000);
+}
+
+// ═══════════════════════════════════════════════════════
+// EDIT USER MODAL — agora com edição de nome
+// ═══════════════════════════════════════════════════════
+function openEdit(idx) {
+  const u = DATA.users[idx];
+  editingIdx = idx;
+  document.getElementById('edit-uname').value = u.name;
+  document.getElementById('edit-uname').disabled = (u.role === 'master'); // não muda nome do master
+  document.getElementById('edit-pass-current').value = u.pass;
+  document.getElementById('edit-pass-current').type = 'password';
+  document.getElementById('edit-new-pass').value = '';
+  document.getElementById('edit-new-pass').type = 'password';
+  const dg = document.getElementById('edit-dep-group');
+  if (u.role === 'master') {
+    dg.style.display = 'none';
+  } else {
+    dg.style.display = '';
+    document.getElementById('edit-dep').value = (u.deposits||[])[0] || 'BERTONI';
+  }
+  document.getElementById('edit-alert').innerHTML = '';
+  document.getElementById('modal-edit').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('modal-edit').classList.remove('open');
+  editingIdx = -1;
+}
+
+function saveEditUser() {
+  if (editingIdx < 0) return;
+  const u = DATA.users[editingIdx];
+  const newName = document.getElementById('edit-uname').value.trim().toLowerCase();
+  const np = document.getElementById('edit-new-pass').value;
+
+  if (!newName) {
+    document.getElementById('edit-alert').innerHTML = '<div class="alert error">⚠ Nome não pode ser vazio.</div>';
+    return;
+  }
+
+  // Check name conflict (excluding self)
+  const conflict = DATA.users.find((x, i) => i !== editingIdx && x.name === newName);
+  if (conflict) {
+    document.getElementById('edit-alert').innerHTML = '<div class="alert error">⚠ Esse nome já existe.</div>';
+    return;
+  }
+
+  // Update name (if not master)
+  if (u.role !== 'master') u.name = newName;
+
+  // Update password
+  if (np) u.pass = np;
+
+  // Update deposit
+  if (u.role !== 'master') u.deposits = [document.getElementById('edit-dep').value];
+
+  saveData(DATA);
+
+  // Update current session if editing yourself
+  if (currentUser && currentUser === DATA.users[editingIdx]) {
+    currentUser = u;
+    document.getElementById('user-badge').textContent = u.name.toUpperCase();
+    document.getElementById('h-avatar').textContent = u.name[0].toUpperCase();
+  }
+
+  document.getElementById('edit-alert').innerHTML = '<div class="alert success">✅ Alterações salvas!</div>';
+  setTimeout(() => { closeEditModal(); showConfig(); }, 1200);
+}
+
+function toggleVis(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+// ═══════════════════════════════════════════════════════
+// CONFERÊNCIA MODAL
+// ═══════════════════════════════════════════════════════
+let modalDep = null;
+function openModal(dep) {
+  modalDep = dep;
+  document.getElementById('modal-title').textContent = `📊 Conferência – ${dep}`;
+  const now = new Date();
+  document.getElementById('modal-month').value = now.getMonth();
+  document.getElementById('modal-year').value = now.getFullYear();
+  document.getElementById('modal-conf').classList.add('open');
+  renderModal();
+}
+function closeModal() { document.getElementById('modal-conf').classList.remove('open'); }
+
+function renderModal() {
+  const dep = modalDep;
+  const month = parseInt(document.getElementById('modal-month').value);
+  const year  = parseInt(document.getElementById('modal-year').value);
+  const dates = getDatesForYear(year).filter(d => d.getMonth() === month);
+  let html = '';
+  PRODUCTS[dep].forEach(prod => {
+    let rows = '';
+    dates.forEach(d => {
+      const r = getRecord(dep,prod,d);
+      const c = calcRow(dep,prod,d,year);
+      rows += `<tr>
+        <td class="date-col">${d.toLocaleDateString('pt-BR')}</td>
+        <td>${num(c.cheio_cedo)}</td><td>${num(c.vazio_cedo)}</td><td><strong>${num(c.estoque_cedo)}</strong></td>
+        <td style="color:var(--accent);font-weight:700">${r.entrada||0}</td>
+        <td style="color:var(--danger);font-weight:700">${r.venda||0}</td>
+        <td>${r.cota_entrada||0}</td><td>${r.cota_saida||0}</td>
+        <td>${r.troca_entrada||0}</td><td>${r.troca_saida||0}</td>
+        <td class="${c.cheio_noite<0?'val-neg':'val-pos'}">${num(c.cheio_noite)}</td>
+        <td class="${c.vazio_noite<0?'val-neg':''}">${num(c.vazio_noite)}</td>
+        <td><strong>${num(c.estoque_noite)}</strong></td>
+        <td style="font-size:11px;color:var(--text2)">${r.obs||'–'}</td>
+      </tr>`;
+    });
+    const t = monthTotals(dep,prod,dates,year);
+    html += `
+    <div style="margin-bottom:24px">
+      <div class="product-label">📦 ${prod} <span class="tag">${MONTHS[month]} ${year}</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>Data</th><th class="col-calc">Cheio Cedo</th><th class="col-calc">Vazio Cedo</th><th class="col-calc">Est. Cedo</th>
+          <th class="col-input">Entrada</th><th class="col-input">Venda</th>
+          <th>Cota Entr.</th><th>Cota Saída</th><th>Troca Entr.</th><th>Troca Saída</th>
+          <th class="col-calc">Cheio Noite</th><th class="col-calc">Vazio Noite</th><th class="col-calc">Est. Noite</th><th>Obs.</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td>TOTAL</td><td>–</td><td>–</td><td>–</td>
+          <td class="tot-e">${t.entrada}</td><td class="tot-v">${t.venda}</td>
+          <td>${t.cota_entrada}</td><td>${t.cota_saida}</td>
+          <td>${t.troca_entrada}</td><td>${t.troca_saida}</td>
+          <td>–</td><td>–</td><td>–</td><td>–</td>
+        </tr></tfoot>
+      </table></div>
+    </div>`;
+  });
+  document.getElementById('modal-body').innerHTML = html;
+}
+
+// ── Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') { closeModal(); closeEditModal(); }
+});
+['login-user','login-pass'].forEach(id => {
+  document.getElementById(id)?.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+});
+</script>
+</body>
+</html>
